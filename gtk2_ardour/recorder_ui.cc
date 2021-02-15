@@ -88,6 +88,12 @@ RecorderUI::RecorderUI ()
 	load_bindings ();
 	register_actions ();
 
+	_transport_ctrl.setup (ARDOUR_UI::instance ());
+	_transport_ctrl.map_actions ();
+	_transport_ctrl.set_no_show_all ();
+
+	signal_tabbed_changed.connect (sigc::mem_fun (*this, &RecorderUI::tabbed_changed));
+
 	/* monitoring */
 	_auto_input_button.set_related_action (ActionManager::get_action ("Transport", "ToggleAutoInput"));
 	_auto_input_button.set_name ("transport option button");
@@ -162,7 +168,11 @@ RecorderUI::RecorderUI ()
 	_rec_container.pack_start (_ruler_box, false, false);
 	_rec_container.pack_start (_rec_scroller, true, true);
 
-	_pane.add (_rec_container);
+	/* HBox, toplevel of upper pane [Info | recarea ] */
+	_rec_container.pack_start (_ruler_box, false, false);
+	_rec_top.pack_start (_rec_container, true, true);
+
+	_pane.add (_rec_top);
 	_pane.add (_meter_scroller);
 
 	/* Top-level VBox */
@@ -176,6 +186,11 @@ RecorderUI::RecorderUI ()
 	int spacepad = 3;
 	int col = 0;
 
+	_button_table.attach (_transport_ctrl, col,  col + 1, 0, 1, FILL, FILL, hpadding, vpadding);
+	col += 1;
+
+	_button_table.attach (_duration_info_box,  col,     col + 1, 0, 1, FILL, FILL,   hpadding, vpadding);
+	_button_table.attach (_xrun_info_box,      col + 1, col + 2, 0, 1, FILL, FILL,   hpadding, vpadding);
 	_button_table.attach (_btn_rec_forget,     col,     col + 2, 1, 2, FILL, SHRINK, hpadding, vpadding);
 	col += 2;
 
@@ -197,6 +212,7 @@ RecorderUI::RecorderUI ()
 
 	_toolbar.pack_start (_button_table, false, false);
 	_toolbar.pack_end (_btn_peak_reset, false, false, 4);
+	_toolbar.pack_end (_remain_info_box, false, false, 4);
 
 	/* tooltips */
 	set_tooltip (_btn_rec_all, _("Record enable all tracks"));
@@ -205,6 +221,9 @@ RecorderUI::RecorderUI ()
 	set_tooltip (_auto_input_button, _("Track Input Monitoring automatically follows transport state"));
 	set_tooltip (_monitor_in_button, _("Force all tracks to monitor Input, unless they are explicitly set to monitor Disk"));
 	set_tooltip (_monitor_disk_button, _("Force all tracks to monitor Disk playback, unless they are explicitly set to Input"));
+	set_tooltip (_xrun_info_box, _("X-runs: Soundcard buffer under- or over-run occurrences in the last recording take"));
+	set_tooltip (_remain_info_box, _("Remaining Time:  Recording time available on the current disk with currently armed tracks"));
+	set_tooltip (_duration_info_box, _("Duration: Length of the most recent (or current) recording take"));
 	set_tooltip (_btn_rec_forget, _("Delete the region AND the audio files of the last recording take"));
 
 	/* show [almost] all */
@@ -225,6 +244,10 @@ RecorderUI::RecorderUI ()
 	_rec_groups.show ();
 	_rec_group_tabs->show ();
 	_rec_container.show ();
+	_rec_top.show ();
+	_duration_info_box.show ();
+	_xrun_info_box.show ();
+	_remain_info_box.show ();
 	_meter_table.show ();
 	_meter_area.show ();
 	_meter_scroller.show ();
@@ -296,6 +319,16 @@ RecorderUI::use_own_window (bool and_fill_it)
 	return win;
 }
 
+void
+RecorderUI::tabbed_changed (bool tabbed)
+{
+	if (tabbed) {
+		_transport_ctrl.hide ();
+	} else {
+		_transport_ctrl.show ();
+	}
+}
+
 XMLNode&
 RecorderUI::get_state ()
 {
@@ -329,6 +362,10 @@ RecorderUI::set_session (Session* s)
 	SessionHandlePtr::set_session (s);
 
 	_ruler.set_session (s);
+	_duration_info_box.set_session (s);
+	_xrun_info_box.set_session (s);
+	_remain_info_box.set_session (s);
+	_transport_ctrl.set_session (s);
 	_rec_group_tabs->set_session (s);
 
 	update_sensitivity ();
