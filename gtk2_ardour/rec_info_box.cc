@@ -161,7 +161,7 @@ DurationInfoBox::render (Cairo::RefPtr<Cairo::Context> const& cr, cairo_rectangl
 			_layout_value->set_text (string_compose("<%1>", std::string(buf).substr(1)));
 		}
 	} else {
-		_layout_value->set_text ("");
+		_layout_value->set_text (" --:--:--:- ");
 	}
 	_layout_value->get_pixel_size (w, h);
 	cr->move_to (.5 * (ww - w), hh/2 - h/2);
@@ -226,7 +226,7 @@ XrunInfoBox::render (Cairo::RefPtr<Cairo::Context> const& cr, cairo_rectangle_t*
 		} else if (_session->capture_duration () > 0) {
 			_layout_value->set_text (string_compose ("<%1>", xruns));
 		} else {
-			return;
+			_layout_value->set_text ("-");
 		}
 	} else {
 		if (_session->actively_recording ()) {
